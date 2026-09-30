@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مولّد الإعلانات التسويقية</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; font-family:'Cairo',sans-serif; background:#0a0a14; color:#fff; overflow-x:hidden; }
+
+#splash{
+  position:fixed; inset:0; z-index:9999;
+  background:linear-gradient(135deg,#1a0033,#4a00e0,#8e2de2,#ff0f7b);
+  background-size:400% 400%;
+  animation:gradientMove 3s ease infinite;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  transition:opacity .7s ease, visibility .7s;
+}
+@keyframes gradientMove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+#splash.hide{ opacity:0; visibility:hidden; }
+.splash-logo{ font-size:80px; animation:pulse 1.4s ease-in-out infinite; }
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+.splash-title{ font-family:'Tajawal'; font-weight:900; font-size:32px; margin-top:18px; color:#fff; }
+.splash-sub{ color:rgba(255,255,255,.85); margin-top:8px; font-size:15px;}
+.loader-bar{ width:200px; height:5px; background:rgba(255,255,255,.2); border-radius:10px; margin-top:35px; overflow:hidden;}
+.loader-bar span{ display:block; height:100%; width:0%; background:linear-gradient(90deg,#ffe259,#ffa751,#ff0f7b); border-radius:10px; animation:load 2.6s ease forwards;}
+@keyframes load{to{width:100%}}
+
+#app{ display:none; min-height:100vh; padding:20px 16px 60px; }
+#app.show{ display:block; }
+
+.header{ text-align:center; margin-bottom:26px; }
+.header h1{ font-family:'Tajawal'; font-weight:900; font-size:28px; color:#ff0f7b; }
+.header p{ color:#9a9ab0; font-size:13px; margin-top:6px; }
+
+.card{
+  background:#1a1a30; border:1px solid rgba(142,45,226,.3);
+  border-radius:22px; padding:20px; margin-bottom:18px;
+}
+.label{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:14px; margin-bottom:10px; color:#c9c9e0;}
+.label .ico{ font-size:18px; }
+
+.upload-area{
+  width:100%; height:170px; border-radius:16px;
+  border:2px dashed rgba(142,45,226,.5);
+  background:rgba(142,45,226,.07);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  cursor:pointer; overflow:hidden; position:relative;
+}
+.upload-area img{ width:100%; height:100%; object-fit:cover; }
+.upload-area .ph{ text-align:center; color:#8a8aa8; }
+.upload-area .ph .big{ font-size:42px; margin-bottom:6px; }
+
+input[type="text"], input[type="number"]{
+  width:100%; padding:14px 16px; border-radius:14px;
+  border:1.5px solid rgba(142,45,226,.35);
+  background:#0e0e1c; color:#fff; font-family:'Cairo';
+  font-size:15px; outline:none;
+}
+input:focus{ border-color:#ff0f7b; }
+
+.btn-create{
+  width:100%; padding:17px; border:none; border-radius:16px;
+  font-family:'Tajawal'; font-weight:900; font-size:19px; color:#fff;
+  background:linear-gradient(135deg,#8e2de2,#ff0f7b,#ffa751);
+  cursor:pointer; margin-top:6px;
+}
+.btn-create:disabled{ opacity:.6; }
+
+#result{ display:none; margin-top:10px; }
+#result.show{ display:block; }
+
+/* ===== الإعلان ===== */
+#adCanvas{
+  width:100%; max-width:480px; margin:0 auto;
+  border-radius:24px; overflow:hidden;
+  background:linear-gradient(160deg,#12002b 0%,#2a0052 40%,#5c0a4a 75%,#8a0f3a 100%);
+}
+
+.ad-image-wrap{ position:relative; width:100%; }
+.ad-image{
+  width:100%; height:320px; object-fit:cover; display:block;
+}
+.ad-badges{
+  position:absolute; top:0; left:0; right:0;
+  display:flex; justify-content:space-between; align-items:flex-start;
+  padding:16px; pointer-events:none;
+}
+.badge-right, .badge-left{
+  padding:8px 16px; border-radius:50px; font-weight:900; font-size:13px;
+  font-family:'Tajawal';
+}
+.badge-right{ background:linear-gradient(135deg,#ff0f7b,#ffa751); color:#fff; }
+.badge-left{ background:rgba(0,0,0,.6); color:#ffe259; border:1px solid rgba(255,255,255,.3); }
+
+.ad-body{ padding:0 20px 22px; position:relative; }
+
+/* ✅ صندوق السعر: نصفه فوق الصورة والنصف تحتها + لون أخضر */
+.ad-price-box{
+  position:relative;
+  margin-top:-38px;
+  margin-bottom:20px;
+  display:flex; align-items:center; justify-content:space-between;
+  background:rgba(0,0,0,.75);
+  border:1.5px solid rgba(0,230,118,.5);
+  border-radius:18px; padding:14px 18px;
+  box-shadow:0 8px 25px rgba(0,0,0,.5), 0 0 20px rgba(0,230,118,.15);
+}
+.ad-price-label{ font-size:14px; color:#e0d6f5; font-weight:700; }
+.ad-price-val{
+  font-family:'Tajawal'; font-weight:900; font-size:28px; color:#00e676;
+  text-shadow:0 0 12px rgba(0,230,118,.6);
+  direction:ltr;
+}
+
+.ad-headline{
+  font-family:'Tajawal'; font-weight:900; font-size:24px;
+  color:#ffe259; text-align:center; line-height:1.4; margin-bottom:10px;
+}
+.ad-desc{
+  color:#e0d6f5; font-size:13px; line-height:1.7; text-align:center;
+  margin-bottom:14px;
+}
+
+/* صندوق واتساب */
+.ad-wa{
+  display:flex; align-items:center; gap:14px;
+  background:linear-gradient(135deg,#25D366,#128C7E);
+  border-radius:18px; padding:14px 18px;
+  text-decoration:none;
+}
+.ad-wa svg{ width:48px; height:48px; flex-shrink:0; }
+.ad-wa .wa-text{ flex:1; text-align:right; }
+.ad-wa .wa-title{ font-size:12px; font-weight:700; color:#fff; }
+.ad-wa .wa-num{
+  font-family:'Tajawal'; font-weight:900; font-size:24px; color:#fff;
+  direction:ltr; letter-spacing:1px; margin-top:2px;
+}
+
+.result-actions{
+  display:flex; gap:12px; margin-top:20px; max-width:480px; margin-inline:auto;
+}
+.btn-dl, .btn-again{
+  flex:1; padding:15px; border:none; border-radius:14px;
+  font-family:'Tajawal'; font-weight:900; font-size:16px; cursor:pointer;
+}
+.btn-dl{ background:linear-gradient(135deg,#00c853,#00e676); color:#00210f; }
+.btn-again{ background:#2a2a44; color:#fff; border:1px solid rgba(142,45,226,.4); }
+
+.toast{
+  position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(100px);
+  background:linear-gradient(135deg,#8e2de2,#ff0f7b); color:#fff;
+  padding:14px 28px; border-radius:50px; font-weight:700; font-size:14px;
+  z-index:10000; transition:.4s; opacity:0;
+}
+.toast.show{ transform:translateX(-50%) translateY(0); opacity:1; }
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="splash-logo">🚀</div>
+  <div class="splash-title">مولّد الإعلانات</div>
+  <div class="splash-sub">اصنع إعلانك التجاري في ثوانٍ</div>
+  <div class="loader-bar"><span></span></div>
+</div>
+
+<div id="app">
+  <div class="header">
+    <h1>✨ مولّد الإعلانات التسويقية</h1>
+    <p>ارفع صورة منتجك، أدخل الاسم والسعر، واحصل على إعلان احترافي</p>
+  </div>
+
+  <div class="card">
+    <div class="label"><span class="ico">🖼️</span> صورة المنتج</div>
+    <div class="upload-area" id="uploadArea">
+      <div class="ph" id="uploadPh">
+        <div class="big">📷</div>
+        <div>اضغط لاختيار صورة المنتج</div>
+      </div>
+      <img id="previewImg" style="display:none;">
+    </div>
+    <input type="file" id="fileInput" accept="image/*" hidden>
+  </div>
+
+  <div class="card">
+    <div class="label"><span class="ico">🏷️</span> اسم المنتج</div>
+    <input type="text" id="productName" placeholder="مثال: ساعة ذكية، عطر فاخر...">
+    <div style="height:16px"></div>
+    <div class="label"><span class="ico">💰</span> السعر (بالدرهم)</div>
+    <input type="number" id="productPrice" placeholder="مثال: 199" min="0">
+  </div>
+
+  <button class="btn-create" id="btnCreate">🎨 إنشاء الإعلان الآن</button>
+
+  <div id="result">
+    <div id="adCanvas">
+
+      <!-- الصورة + الشارات -->
+      <div class="ad-image-wrap">
+        <img class="ad-image" id="adImg" src="">
+        <div class="ad-badges">
+          <div class="badge-left">✅ أصلي 100%</div>
+          <div class="badge-right">🔥 عرض محدود</div>
+        </div>
+      </div>
+
+      <div class="ad-body">
+
+        <!-- ✅ السعر: نصفه فوق الصورة والنصف تحتها -->
+        <div class="ad-price-box">
+          <span class="ad-price-label">السعر فقط</span>
+          <span class="ad-price-val" id="adPrice"></span>
+        </div>
+
+        <div class="ad-headline" id="adHeadline"></div>
+        <div class="ad-desc" id="adDesc"></div>
+
+        <a href="https://wa.me/212715072766" target="_blank" class="ad-wa">
+          <svg viewBox="0 0 24 24" fill="#ffffff">
+            <path d="M17.6 14.4c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.49-.9-.8-1.5-1.78-1.67-2.08-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51-.17-.01-.37-.01-.57-.01s-.52.07-.79.37c-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.19 1.87.12.57-.08 1.77-.72 2.02-1.42.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35z"/>
+            <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.46 1.32 4.96L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21 5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm0 18.15c-1.52 0-3.01-.41-4.31-1.18l-.31-.18-3.12.82.83-3.04-.2-.32c-.85-1.35-1.3-2.91-1.3-4.51 0-4.54 3.7-8.24 8.24-8.24s8.24 3.7 8.24 8.24-3.7 8.24-8.24 8.24z"/>
+          </svg>
+          <div class="wa-text">
+            <div class="wa-title">تواصل معنا على واتساب</div>
+            <div class="wa-num">0715072766</div>
+          </div>
+        </a>
+
+      </div>
+    </div>
+
+    <div class="result-actions">
+      <button class="btn-dl" id="btnDownload">⬇️ تحميل الإعلان</button>
+      <button class="btn-again" id="btnAgain">🔄 إنشاء آخر</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">تم!</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('splash').classList.add('hide');
+    document.getElementById('app').classList.add('show');
+  }, 2500);
+});
+
+const uploadArea = document.getElementById('uploadArea');
+const fileInput  = document.getElementById('fileInput');
+const previewImg = document.getElementById('previewImg');
+const uploadPh   = document.getElementById('uploadPh');
+
+uploadArea.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    previewImg.src = ev.target.result;
+    previewImg.style.display = 'block';
+    uploadPh.style.display = 'none';
+    uploadArea.style.borderStyle = 'solid';
+    uploadArea.style.borderColor = '#00c853';
+  };
+  reader.readAsDataURL(file);
+});
+
+const HOOKS = ["🔥 لا تفوّت الفرصة!","⚡ العرض الأقوى هذا الأسبوع!","💥 انفجار العروض!","🎯 الحل الذي كنت تبحث عنه!","🚀 ارتقِ بمستواك الآن!","✨ الجودة التي تستحقها!","🏆 الأفضل في فئته!","💎 قطعة لا تُقدّر بثمن!","🌟 اكتشف الفرق بنفسك!","🎁 هدية مثالية لك أو لمن تحب!"];
+const HEADLINE_TEMPLATES = ["{name} — {hook}","{hook} {name} بأفضل سعر!","{name} الأصلي الآن بين يديك {hook}","احصل على {name} {hook}","{name} : الجودة والفخامة في آن واحد {hook}"];
+const DESC_OPENERS = ["اكتشف {name} الذي يجمع بين الأناقة والعملية،","نقدّم لك {name} بمواصفات استثنائية،","إذا كنت تبحث عن {name} يجمع الجودة والسعر المناسب،","{name} الجديد كلياً وصل أخيراً،","استمتع بتجربة فريدة مع {name}،"];
+const DESC_BENEFITS = ["بجودة عالية تدوم طويلاً وتفاصيل مصقولة بعناية.","بتصميم عصري يناسب جميع الأذواق والمناسبات.","بأداء موثوق وأمان تام في الاستخدام.","بمواد متينة وآمنة تماماً عليك وعلى عائلتك.","بخامات فاخرة تعكس ذوقك الرفيع.","بتقنيات حديثة توفّر عليك الوقت والجهد."];
+const DESC_URGENCY = ["🚚 التوصيل مجاني لجميع المدن، والدفع عند الاستلام — بدون أي مخاطرة!","💵 ادفع عند الاستلام، والتوصيل مجاني حتى باب منزلك!","🛡️ ضمان الجودة والأمان، مع توصيل مجاني ودفع عند الاستلام.","⭐ آلاف العملاء راضون، والدفع عند الاستلام متاح + توصيل مجاني!","🎁 اطلبه الآن، وصلك مجاناً، ودفع عند الاستلام — فرصة لا تعوّض!"];
+
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+
+const btnCreate = document.getElementById('btnCreate');
+const result = document.getElementById('result');
+
+btnCreate.addEventListener('click', () => {
+  const name = document.getElementById('productName').value.trim();
+  const price = document.getElementById('productPrice').value.trim();
+  const imgSrc = previewImg.src;
+
+  if (!name){ showToast('⚠️ أدخل اسم المنتج'); return; }
+  if (!price || parseFloat(price) <= 0){ showToast('⚠️ أدخل سعراً صحيحاً'); return; }
+  if (!imgSrc){ showToast('⚠️ اختر صورة المنتج'); return; }
+
+  btnCreate.disabled = true;
+  btnCreate.textContent = '⏳ جاري الإنشاء...';
+
+  const headline = pick(HEADLINE_TEMPLATES).replace(/{name}/g, name).replace(/{hook}/g, pick(HOOKS));
+  const description = `${pick(DESC_OPENERS).replace(/{name}/g, name)} ${pick(DESC_BENEFITS)} ${pick(DESC_URGENCY)}`;
+  const priceFormatted = parseFloat(price).toLocaleString('en-US') + ' درهم';
+
+  document.getElementById('adImg').src = imgSrc;
+  document.getElementById('adHeadline').textContent = headline;
+  document.getElementById('adDesc').textContent = description;
+  document.getElementById('adPrice').textContent = priceFormatted;
+
+  result.classList.add('show');
+  setTimeout(() => {
+    result.scrollIntoView({behavior:'smooth', block:'start'});
+    btnCreate.disabled = false;
+    btnCreate.textContent = '🎨 إنشاء الإعلان الآن';
+    showToast('✅ تم إنشاء الإعلان!');
+  }, 500);
+});
+
+document.getElementById('btnDownload').addEventListener('click', () => {
+  const el = document.getElementById('adCanvas');
+  const btn = document.getElementById('btnDownload');
+  btn.textContent = '⏳ جاري التحميل...';
+  btn.disabled = true;
+
+  setTimeout(() => {
+    html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#12002b',
+      logging: false,
+      allowTaint: true
+    }).then(canvas => {
+      const link = document.createElement('a');
+      link.download = 'اعلان-' + Date.now() + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      btn.textContent = '⬇️ تحميل الإعلان';
+      btn.disabled = false;
+      showToast('📥 تم التحميل!');
+    }).catch(err => {
+      console.error(err);
+      btn.textContent = '⬇️ تحميل الإعلان';
+      btn.disabled = false;
+      showToast('❌ فشل التحميل');
+    });
+  }, 800);
+});
+
+document.getElementById('btnAgain').addEventListener('click', () => {
+  result.classList.remove('show');
+  window.scrollTo({ top:0, behavior:'smooth' });
+});
+
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+</script>
+</body>
+</html>
